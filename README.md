@@ -10,3 +10,7 @@ For your convenience, both procedures are documented for you at
 **Special Note:** This course is published in multiple languages via different repos.
 * For the English version, see https://github.com/databricks-academy/data-engineering-with-databricks-english (this repo)
 * For the Japanese version, see https://github.com/databricks-academy/data-engineering-with-databricks-japanese 
+
+# Status
+
+1. Git configuration
