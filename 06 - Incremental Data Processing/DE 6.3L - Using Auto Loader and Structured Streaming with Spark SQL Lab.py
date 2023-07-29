@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md-sandbox
-# MAGIC 
+# MAGIC
 # MAGIC <div style="text-align: center; line-height: 0; padding-top: 9px;">
 # MAGIC   <img src="https://databricks.com/wp-content/uploads/2018/03/db-academy-rgb-1200px.png" alt="Databricks Learning" style="width: 600px">
 # MAGIC </div>
@@ -8,10 +8,10 @@
 # COMMAND ----------
 
 # MAGIC %md <i18n value="e6dedae8-1335-494e-acdf-4a1906f8c826"/>
-# MAGIC 
-# MAGIC 
+# MAGIC
+# MAGIC
 # MAGIC # Using Auto Loader and Structured Streaming with Spark SQL
-# MAGIC 
+# MAGIC
 # MAGIC ## Learning Objectives
 # MAGIC By the end of this lab, you should be able to:
 # MAGIC * Ingest data using Auto Loader
@@ -21,8 +21,8 @@
 # COMMAND ----------
 
 # MAGIC %md <i18n value="ab5018b7-17b9-4f66-a32d-9c86860f6f30"/>
-# MAGIC 
-# MAGIC 
+# MAGIC
+# MAGIC
 # MAGIC ## Setup
 # MAGIC Run the following script to setup necessary variables and clear out past runs of this notebook. Note that re-executing this cell will allow you to start the lab over.
 
@@ -33,13 +33,13 @@
 # COMMAND ----------
 
 # MAGIC %md <i18n value="03347519-151b-4304-8cda-1cbd91af0737"/>
-# MAGIC 
-# MAGIC 
-# MAGIC 
+# MAGIC
+# MAGIC
+# MAGIC
 # MAGIC ## Configure Streaming Read
-# MAGIC 
+# MAGIC
 # MAGIC This lab uses a collection of customer-related CSV data from the **retail-org/customers** dataset.
-# MAGIC 
+# MAGIC
 # MAGIC Read this data using <a href="https://docs.databricks.com/spark/latest/structured-streaming/auto-loader.html" target="_blank">Auto Loader</a> using its schema inference (use **`customers_checkpoint_path`** to store the schema info). Create a streaming temporary view called **`customers_raw_temp`**.
 
 # COMMAND ----------
@@ -50,7 +50,9 @@ customers_checkpoint_path = f"{DA.paths.checkpoints}/customers"
 
 (spark
   .readStream
-  <FILL-IN>
+  .format("cloudFiles")
+  .option("cloudFiles.format", "csv")
+  .option("cloudFiles.schemaLocation", customers_checkpoint_path)
   .load(dataset_source)
   .createOrReplaceTempView("customers_raw_temp"))
 
@@ -82,21 +84,22 @@ assert spark.table("customers_raw_temp").dtypes ==  [('customer_id', 'string'),
 # COMMAND ----------
 
 # MAGIC %md <i18n value="4582665f-8192-4751-83f8-8ae1a4d55f22"/>
-# MAGIC 
-# MAGIC 
-# MAGIC 
+# MAGIC
+# MAGIC
+# MAGIC
 # MAGIC ## Define a streaming aggregation
-# MAGIC 
+# MAGIC
 # MAGIC Using CTAS syntax, define a new streaming view called **`customer_count_by_state_temp`** that counts the number of customers per **`state`**, in a field called **`customer_count`**.
 
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC -- TODO
-# MAGIC 
 # MAGIC CREATE OR REPLACE TEMPORARY VIEW customer_count_by_state_temp AS
 # MAGIC SELECT
-# MAGIC   <FILL-IN>
+# MAGIC   state,
+# MAGIC   count(customer_name) as customer_count
+# MAGIC FROM customers_raw_temp
+# MAGIC GROUP BY state
 
 # COMMAND ----------
 
@@ -106,11 +109,11 @@ assert spark.table("customer_count_by_state_temp").dtypes == [('state', 'string'
 # COMMAND ----------
 
 # MAGIC %md <i18n value="bef919d7-d681-4233-8da5-39ca94c49a8b"/>
-# MAGIC 
-# MAGIC 
-# MAGIC 
+# MAGIC
+# MAGIC
+# MAGIC
 # MAGIC ## Write aggregated data to a Delta table
-# MAGIC 
+# MAGIC
 # MAGIC Stream data from the **`customer_count_by_state_temp`** view to a Delta table called **`customer_count_by_state`**.
 
 # COMMAND ----------
@@ -118,8 +121,13 @@ assert spark.table("customer_count_by_state_temp").dtypes == [('state', 'string'
 # TODO
 customers_count_checkpoint_path = f"{DA.paths.checkpoints}/customers_count"
 
-query = (spark
-  <FILL-IN>
+query = (spark.table("customer_count_by_state_temp")
+  .writeStream
+  .format("delta")
+  .option("checkpointLocation", customers_count_checkpoint_path)
+  .outputMode("complete")
+  .table("customer_count_by_state")
+)
 
 # COMMAND ----------
 
@@ -133,25 +141,25 @@ assert spark.table("customer_count_by_state").dtypes == [('state', 'string'), ('
 # COMMAND ----------
 
 # MAGIC %md <i18n value="f74f262f-10c4-4f2f-84d6-f69e56c54ac6"/>
-# MAGIC 
-# MAGIC 
-# MAGIC 
+# MAGIC
+# MAGIC
+# MAGIC
 # MAGIC ## Query the results
-# MAGIC 
+# MAGIC
 # MAGIC Query the **`customer_count_by_state`** table (this will not be a streaming query). Plot the results as a bar graph and also using the map plot.
 
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC -- TODO
+# MAGIC select * from customer_count_by_state
 
 # COMMAND ----------
 
 # MAGIC %md <i18n value="e2cf644d-96f9-47f7-ad81-780125d3ad4b"/>
-# MAGIC 
-# MAGIC 
+# MAGIC
+# MAGIC
 # MAGIC ## Wrapping Up
-# MAGIC 
+# MAGIC
 # MAGIC Run the following cell to remove the database and all data associated with this lab.
 
 # COMMAND ----------
@@ -161,8 +169,8 @@ DA.cleanup()
 # COMMAND ----------
 
 # MAGIC %md <i18n value="8f3c4c52-b5d9-4f8a-974c-ce5db6430c43"/>
-# MAGIC 
-# MAGIC 
+# MAGIC
+# MAGIC
 # MAGIC By completing this lab, you should now feel comfortable:
 # MAGIC * Using PySpark to configure Auto Loader for incremental data ingestion
 # MAGIC * Using Spark SQL to aggregate streaming data
