@@ -1,6 +1,6 @@
 -- Databricks notebook source
 -- MAGIC %md-sandbox
--- MAGIC 
+-- MAGIC
 -- MAGIC <div style="text-align: center; line-height: 0; padding-top: 9px;">
 -- MAGIC   <img src="https://databricks.com/wp-content/uploads/2018/03/db-academy-rgb-1200px.png" alt="Databricks Learning" style="width: 600px">
 -- MAGIC </div>
@@ -8,16 +8,16 @@
 -- COMMAND ----------
 
 -- MAGIC %md <i18n value="b9ee68dd-a00f-45a6-9c7a-9c59a41fef6a"/>
--- MAGIC 
--- MAGIC 
+-- MAGIC
+-- MAGIC
 -- MAGIC # SQL for Delta Live Tables
--- MAGIC 
+-- MAGIC
 -- MAGIC In the last lesson, we walked through the process of scheduling this notebook as a Delta Live Table (DLT) pipeline. Now we'll explore the contents of this notebook to better understand the syntax used by Delta Live Tables.
--- MAGIC 
+-- MAGIC
 -- MAGIC This notebook uses SQL to declare Delta Live Tables that together implement a simple multi-hop architecture based on a Databricks-provided example dataset loaded by default into Databricks workspaces.
--- MAGIC 
+-- MAGIC
 -- MAGIC At its simplest, you can think of DLT SQL as a slight modification to traditional CTAS statements. DLT tables and views will always be preceded by the **`LIVE`** keyword.
--- MAGIC 
+-- MAGIC
 -- MAGIC ## Learning Objectives
 -- MAGIC By the end of this lesson, you should be able to:
 -- MAGIC * Define tables and views with Delta Live Tables
@@ -28,26 +28,26 @@
 -- COMMAND ----------
 
 -- MAGIC %md <i18n value="1cc1fe77-a235-40dd-beb5-bacc94425b96"/>
--- MAGIC 
--- MAGIC 
+-- MAGIC
+-- MAGIC
 -- MAGIC ## Declare Bronze Layer Tables
--- MAGIC 
+-- MAGIC
 -- MAGIC Below we declare two tables implementing the bronze layer. This represents data in its rawest form, but captured in a format that can be retained indefinitely and queried with the performance and benefits that Delta Lake has to offer.
 
 -- COMMAND ----------
 
 -- MAGIC %md <i18n value="458afeb2-4472-4ed2-a4c7-6dea2338c3f2"/>
--- MAGIC 
--- MAGIC 
+-- MAGIC
+-- MAGIC
 -- MAGIC ### sales_orders_raw
--- MAGIC 
+-- MAGIC
 -- MAGIC **`sales_orders_raw`** ingests JSON data incrementally from our **retail-org/sales_orders** dataset.
--- MAGIC 
+-- MAGIC
 -- MAGIC Incremental processing via <a herf="https://docs.databricks.com/spark/latest/structured-streaming/auto-loader.html" target="_blank">Auto Loader</a> (which uses the same processing model as Structured Streaming), requires the addition of the **`STREAMING`** keyword in the declaration as seen below. The **`cloud_files()`** method enables Auto Loader to be used natively with SQL. This method takes the following positional parameters:
 -- MAGIC * The source location, as mentioned above
 -- MAGIC * The source data format, which is JSON in this case
 -- MAGIC * An arbitrarily sized array of optional reader options. In this case, we set **`cloudFiles.inferColumnTypes`** to **`true`**
--- MAGIC 
+-- MAGIC
 -- MAGIC The following declaration also demonstrates the declaration of additional table metadata (a comment and properties in this case) that would be visible to anyone exploring the data catalog.
 
 -- COMMAND ----------
@@ -59,12 +59,12 @@ AS SELECT * FROM cloud_files("${datasets_path}/retail-org/sales_orders", "json",
 -- COMMAND ----------
 
 -- MAGIC %md <i18n value="57accbe1-e96d-44ca-8937-8849634d1da2"/>
--- MAGIC 
--- MAGIC 
+-- MAGIC
+-- MAGIC
 -- MAGIC ### customers
--- MAGIC 
+-- MAGIC
 -- MAGIC **`customers`** presents CSV customer data found in **retail-org/customers**.
--- MAGIC 
+-- MAGIC
 -- MAGIC This table will soon be used in a join operation to look up customer data based on sales records.
 
 -- COMMAND ----------
@@ -76,39 +76,39 @@ AS SELECT * FROM cloud_files("${datasets_path}/retail-org/customers/", "csv");
 -- COMMAND ----------
 
 -- MAGIC %md <i18n value="09bc5c4d-1408-47f8-8102-ddaf0a96a6c0"/>
--- MAGIC 
--- MAGIC 
--- MAGIC 
+-- MAGIC
+-- MAGIC
+-- MAGIC
 -- MAGIC ## Declare Silver Layer Tables
--- MAGIC 
+-- MAGIC
 -- MAGIC Now we declare tables implementing the silver layer. This layer represents a refined copy of data from the bronze layer, with the intention of optimizing downstream applications. At this level we apply operations like data cleansing and enrichment.
 
 -- COMMAND ----------
 
 -- MAGIC %md <i18n value="eb20ea4d-1115-4536-adac-7bbd85491726"/>
--- MAGIC 
--- MAGIC 
+-- MAGIC
+-- MAGIC
 -- MAGIC ### sales_orders_cleaned
--- MAGIC 
+-- MAGIC
 -- MAGIC Here we declare our first silver table, which enriches the sales transaction data with customer information in addition to implementing quality control by rejecting records with a null order number.
--- MAGIC 
+-- MAGIC
 -- MAGIC This declaration introduces a number of new concepts.
--- MAGIC 
+-- MAGIC
 -- MAGIC #### Quality Control
--- MAGIC 
+-- MAGIC
 -- MAGIC The **`CONSTRAINT`** keyword introduces quality control. Similar in function to a traditional **`WHERE`** clause, **`CONSTRAINT`** integrates with DLT, enabling it to collect metrics on constraint violations. Constraints provide an optional **`ON VIOLATION`** clause, specifying an action to take on records that violate the constraint. The three modes currently supported by DLT include:
--- MAGIC 
+-- MAGIC
 -- MAGIC | **`ON VIOLATION`** | Behavior |
 -- MAGIC | --- | --- |
 -- MAGIC | **`FAIL UPDATE`** | Pipeline failure when constraint is violated |
 -- MAGIC | **`DROP ROW`** | Discard records that violate constraints |
 -- MAGIC | Omitted | Records violating constraints will be included (but violations will be reported in metrics) |
--- MAGIC 
+-- MAGIC
 -- MAGIC #### References to DLT Tables and Views
 -- MAGIC References to other DLT tables and views will always include the **`live.`** prefix. A target database name will automatically be substituted at runtime, allowing for easily migration of pipelines between DEV/QA/PROD environments.
--- MAGIC 
+-- MAGIC
 -- MAGIC #### References to Streaming Tables
--- MAGIC 
+-- MAGIC
 -- MAGIC References to streaming DLT tables use the **`STREAM()`**, supplying the table name as an argument.
 
 -- COMMAND ----------
@@ -130,10 +130,10 @@ AS
 -- COMMAND ----------
 
 -- MAGIC %md <i18n value="ae062501-5a39-4183-976a-53662619d516"/>
--- MAGIC 
--- MAGIC 
+-- MAGIC
+-- MAGIC
 -- MAGIC ## Declare Gold Table
--- MAGIC 
+-- MAGIC
 -- MAGIC At the most refined level of the architecture, we declare a table delivering an aggregation with business value, in this case a collection of sales order data based in a specific region. In aggregating, the report generates counts and totals of orders by date and customer.
 
 -- COMMAND ----------
@@ -153,47 +153,46 @@ AS
 -- COMMAND ----------
 
 -- MAGIC %md <i18n value="c3efd15d-6587-4cd4-9758-37643dcfd694"/>
--- MAGIC 
--- MAGIC 
+-- MAGIC
+-- MAGIC
 -- MAGIC ## Explore Results
--- MAGIC 
+-- MAGIC
 -- MAGIC Explore the DAG (Directed Acyclic Graph) representing the entities involved in the pipeline and the relationships between them. Click on each to view a summary, which includes:
 -- MAGIC * Run status
 -- MAGIC * Metadata summary
 -- MAGIC * Schema
 -- MAGIC * Data quality metrics
--- MAGIC 
+-- MAGIC
 -- MAGIC Refer to this <a href="$./DE 8.3 - Pipeline Results" target="_blank">companion notebook</a> to inspect tables and logs.
 
 -- COMMAND ----------
 
 -- MAGIC %md <i18n value="77c262ce-1b24-4ca2-a931-e481927d1739"/>
--- MAGIC 
--- MAGIC 
+-- MAGIC
+-- MAGIC
 -- MAGIC ## Update Pipeline
--- MAGIC 
+-- MAGIC
 -- MAGIC Uncomment the following cell to declare another gold table. Similar to the previous gold table declaration, this filters for the **`city`** of Chicago. 
--- MAGIC 
+-- MAGIC
 -- MAGIC Re-run your pipeline to examine the updated results. 
--- MAGIC 
+-- MAGIC
 -- MAGIC Does it run as expected? 
--- MAGIC 
+-- MAGIC
 -- MAGIC Can you identify any issues?
 
 -- COMMAND ----------
 
--- TODO
--- CREATE OR REFRESH LIVE TABLE sales_order_in_chicago
--- COMMENT "Sales orders in Chicago."
--- AS
---   SELECT city, order_date, customer_id, customer_name, ordered_products_explode.curr, 
---          sum(ordered_products_explode.price) as sales, 
---          sum(ordered_products_explode.qty) as quantity, 
---          count(ordered_products_explode.id) as product_count
---   FROM (SELECT city, order_date, customer_id, customer_name, explode(ordered_products) as ordered_products_explode
---         FROM sales_orders_cleaned 
---         WHERE city = 'Chicago')
---   GROUP BY order_date, city, customer_id, customer_name, ordered_products_explode.curr
+CREATE OR REFRESH LIVE TABLE sales_order_in_chicago
+COMMENT "Sales orders in Chicago."
+AS
+  SELECT city, order_date, customer_id, customer_name, ordered_products_explode.curr, 
+         sum(ordered_products_explode.price) as sales, 
+         sum(ordered_products_explode.qty) as quantity, 
+         count(ordered_products_explode.id) as product_count
+  FROM (SELECT city, order_date, customer_id, customer_name, explode(ordered_products) as ordered_products_explode
+        FROM LIVE.sales_orders_cleaned 
+        WHERE city = 'Chicago')
+  GROUP BY order_date, city, customer_id, customer_name, ordered_products_explode.curr
 
 -- COMMAND ----------
 
