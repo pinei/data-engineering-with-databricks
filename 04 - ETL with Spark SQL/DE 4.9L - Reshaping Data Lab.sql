@@ -1,6 +1,6 @@
 -- Databricks notebook source
 -- MAGIC %md-sandbox
--- MAGIC 
+-- MAGIC
 -- MAGIC <div style="text-align: center; line-height: 0; padding-top: 9px;">
 -- MAGIC   <img src="https://databricks.com/wp-content/uploads/2018/03/db-academy-rgb-1200px.png" alt="Databricks Learning" style="width: 600px">
 -- MAGIC </div>
@@ -8,14 +8,14 @@
 -- COMMAND ----------
 
 -- MAGIC %md <i18n value="7d67b345-b680-4f39-a384-31655b390a78"/>
--- MAGIC 
--- MAGIC 
+-- MAGIC
+-- MAGIC
 -- MAGIC # Reshaping Data Lab
--- MAGIC 
+-- MAGIC
 -- MAGIC In this lab, you will create a **`clickpaths`** table that aggregates the number of times each user took a particular action in **`events`** and then join this information with the flattened view of **`transactions`** created in the previous notebook.
--- MAGIC 
+-- MAGIC
 -- MAGIC You'll also explore a new higher order function to flag items recorded in **`sales`** based on information extracted from item names.
--- MAGIC 
+-- MAGIC
 -- MAGIC ## Learning Objectives
 -- MAGIC By the end of this lab, you should be able to:
 -- MAGIC - Pivot and join tables to create clickpaths for each user
@@ -24,10 +24,10 @@
 -- COMMAND ----------
 
 -- MAGIC %md <i18n value="db657989-4a07-41c5-acc8-18d6ceabbc85"/>
--- MAGIC 
--- MAGIC 
+-- MAGIC
+-- MAGIC
 -- MAGIC ## Run Setup
--- MAGIC 
+-- MAGIC
 -- MAGIC The setup script will create the data and declare necessary values for the rest of this notebook to execute.
 
 -- COMMAND ----------
@@ -37,22 +37,22 @@
 -- COMMAND ----------
 
 -- MAGIC %md <i18n value="3b76127f-ef49-4024-a970-67ac52a1fa63"/>
--- MAGIC 
--- MAGIC 
+-- MAGIC
+-- MAGIC
 -- MAGIC ## Reshape Datasets to Create Click Paths
 -- MAGIC This operation will join data from your **`events`** and **`transactions`** tables in order to create a record of all actions a user took on the site and what their final order looked like.
--- MAGIC 
+-- MAGIC
 -- MAGIC The **`clickpaths`** table should contain all the fields from your **`transactions`** table, as well as a count of every **`event_name`** in its own column. Each user that completed a purchase should have a single row in the final table. Let's start by pivoting the **`events`** table to get counts for each **`event_name`**.
 
 -- COMMAND ----------
 
 -- MAGIC %md <i18n value="a4124fa1-e5cc-467f-8a7c-fb5978fefad1"/>
--- MAGIC 
--- MAGIC 
--- MAGIC 
+-- MAGIC
+-- MAGIC
+-- MAGIC
 -- MAGIC ### 1. Pivot **`events`** to count actions for each user
 -- MAGIC We want to aggregate the number of times each user performed a specific event, specified in the **`event_name`** column. To do this, group by **`user_id`** and pivot on **`event_name`** to provide a count of every event type in its own column, resulting in the schema below.
--- MAGIC 
+-- MAGIC
 -- MAGIC | field | type | 
 -- MAGIC | --- | --- | 
 -- MAGIC | user_id | STRING |
@@ -79,24 +79,32 @@
 -- MAGIC | original | BIGINT |
 -- MAGIC | delivery | BIGINT |
 -- MAGIC | premium | BIGINT |
--- MAGIC 
+-- MAGIC
 -- MAGIC A list of the event names are provided below.
 
 -- COMMAND ----------
 
--- TODO
-CREATE OR REPLACE VIEW events_pivot
-<FILL_IN>
-("cart", "pillows", "login", "main", "careers", "guest", "faq", "down", "warranty", "finalize", 
-"register", "shipping_info", "checkout", "mattresses", "add_item", "press", "email_coupon", 
-"cc_info", "foam", "reviews", "original", "delivery", "premium")
+CREATE OR REPLACE VIEW events_pivot as 
+SELECT * FROM
+(
+  SELECT
+    user_id as user,
+    event_name
+  FROM
+    events
+) PIVOT (
+  count(*) for event_name in 
+    ("cart", "pillows", "login", "main", "careers", "guest", "faq", "down", "warranty", "finalize", 
+    "register", "shipping_info", "checkout", "mattresses", "add_item", "press", "email_coupon", 
+    "cc_info", "foam", "reviews", "original", "delivery", "premium")
+)
 
 -- COMMAND ----------
 
 -- MAGIC %md <i18n value="8646882a-e334-4293-ba4d-550e86a2ed79"/>
--- MAGIC 
--- MAGIC 
--- MAGIC 
+-- MAGIC
+-- MAGIC
+-- MAGIC
 -- MAGIC **NOTE**: We'll use Python to run checks occasionally throughout the lab. The helper functions below will return an error with a message on what needs to change if you have not followed instructions. No output means that you have completed this step.
 
 -- COMMAND ----------
@@ -110,9 +118,9 @@ CREATE OR REPLACE VIEW events_pivot
 -- COMMAND ----------
 
 -- MAGIC %md <i18n value="75fd31d6-3674-48c4-bc6b-c321a47ade9b"/>
--- MAGIC 
--- MAGIC 
--- MAGIC 
+-- MAGIC
+-- MAGIC
+-- MAGIC
 -- MAGIC Run the cell below to confirm the view was created correctly.
 
 -- COMMAND ----------
@@ -124,13 +132,13 @@ CREATE OR REPLACE VIEW events_pivot
 -- COMMAND ----------
 
 -- MAGIC %md <i18n value="bb41e6ea-aeae-4f4f-97c5-cad043d151cd"/>
--- MAGIC 
--- MAGIC 
--- MAGIC 
+-- MAGIC
+-- MAGIC
+-- MAGIC
 -- MAGIC ### 2. Join event counts and transactions for all users
--- MAGIC 
+-- MAGIC
 -- MAGIC Next, join **`events_pivot`** with **`transactions`** to create the table **`clickpaths`**. This table should have the same event name columns from the **`events_pivot`** table created above, followed by columns from the **`transactions`** table, as shown below.
--- MAGIC 
+-- MAGIC
 -- MAGIC | field | type | 
 -- MAGIC | --- | --- | 
 -- MAGIC | user | STRING |
@@ -157,16 +165,18 @@ CREATE OR REPLACE VIEW events_pivot
 
 -- COMMAND ----------
 
--- TODO
 CREATE OR REPLACE VIEW clickpaths AS
-<FILL_IN>
+SELECT
+*
+FROM
+  events_pivot INNER JOIN transactions ON events_pivot.user = transactions.user_id
 
 -- COMMAND ----------
 
 -- MAGIC %md <i18n value="db501e67-0444-4988-a850-e7f374b38f3e"/>
--- MAGIC 
--- MAGIC 
--- MAGIC 
+-- MAGIC
+-- MAGIC
+-- MAGIC
 -- MAGIC Run the cell below to confirm the table was created correctly.
 
 -- COMMAND ----------
@@ -178,36 +188,37 @@ CREATE OR REPLACE VIEW clickpaths AS
 -- COMMAND ----------
 
 -- MAGIC %md <i18n value="ed22d836-9233-469c-8aa1-4bea42f84517"/>
--- MAGIC 
--- MAGIC 
+-- MAGIC
+-- MAGIC
 -- MAGIC ## Flag Types of Products Purchased
 -- MAGIC Here, you'll use the higher order function **`EXISTS`** with data from the **`sales`** table to create boolean columns **`mattress`** and **`pillow`** that indicate whether the item purchased was a mattress or pillow product.
--- MAGIC 
+-- MAGIC
 -- MAGIC For example, if **`item_name`** from the **`items`** column ends with the string **`"Mattress"`**, the column value for **`mattress`** should be **`true`** and the value for **`pillow`** should be **`false`**. Here are a few examples of items and the resulting values.
--- MAGIC 
+-- MAGIC
 -- MAGIC |  items  | mattress | pillow |
 -- MAGIC | ------- | -------- | ------ |
 -- MAGIC | **`[{..., "item_id": "M_PREM_K", "item_name": "Premium King Mattress", ...}]`** | true | false |
 -- MAGIC | **`[{..., "item_id": "P_FOAM_S", "item_name": "Standard Foam Pillow", ...}]`** | false | true |
 -- MAGIC | **`[{..., "item_id": "M_STAN_F", "item_name": "Standard Full Mattress", ...}]`** | true | false |
--- MAGIC 
+-- MAGIC
 -- MAGIC See documentation for the <a href="https://docs.databricks.com/sql/language-manual/functions/exists.html" target="_blank">exists</a> function.  
 -- MAGIC You can use the condition expression **`item_name LIKE "%Mattress"`** to check whether the string **`item_name`** ends with the word "Mattress".
 
 -- COMMAND ----------
 
--- TODO
 CREATE OR REPLACE TABLE sales_product_flags AS
-<FILL_IN>
-EXISTS <FILL_IN>.item_name LIKE "%Mattress"
-EXISTS <FILL_IN>.item_name LIKE "%Pillow"
+SELECT
+    items,
+    EXISTS(items, item -> item.item_name LIKE "%Mattress") as mattress,
+    EXISTS(items, item-> item.item_name LIKE "%Pillow") as pillow
+FROM sales
 
 -- COMMAND ----------
 
 -- MAGIC %md <i18n value="3d56b9b4-957d-4ea2-8c49-f4e92a4918c9"/>
--- MAGIC 
--- MAGIC 
--- MAGIC 
+-- MAGIC
+-- MAGIC
+-- MAGIC
 -- MAGIC Run the cell below to confirm the table was created correctly.
 
 -- COMMAND ----------
@@ -220,7 +231,7 @@ EXISTS <FILL_IN>.item_name LIKE "%Pillow"
 -- COMMAND ----------
 
 -- MAGIC %md <i18n value="e78c6d7f-bd25-4af8-8d01-a6943f24b8d6"/>
--- MAGIC 
+-- MAGIC
 -- MAGIC  
 -- MAGIC Run the following cell to delete the tables and files associated with this lesson.
 
